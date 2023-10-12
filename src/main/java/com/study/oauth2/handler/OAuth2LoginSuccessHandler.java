@@ -1,7 +1,11 @@
 package com.study.oauth2.handler;
 
+import com.study.oauth2.entity.Role;
 import com.study.oauth2.entity.SocialUser;
+import com.study.oauth2.entity.UserRole;
+import com.study.oauth2.repository.RoleRepository;
 import com.study.oauth2.repository.SocialUserRepository;
+import com.study.oauth2.repository.UserRoleRepository;
 import com.study.oauth2.service.SocialUserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -19,9 +23,15 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final SocialUserService userService;
     private final SocialUserRepository socialUserRepository;
 
-    public OAuth2LoginSuccessHandler(SocialUserService userService, SocialUserRepository userRepository){
+    private final RoleRepository roleRepository;
+
+    private final UserRoleRepository userRoleRepository;
+
+    public OAuth2LoginSuccessHandler(SocialUserService userService, SocialUserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository){
         this.userService = userService;
         this.socialUserRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.userRoleRepository = userRoleRepository;
     }
 
     @Override
@@ -47,7 +57,25 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                 newSocialUser.setName(oauth2User.getAttribute("name")); // 이름 설정하기
                 newSocialUser.setEmail(oauth2User.getAttribute("email"));
 
-                return socialUserRepository.save(newSocialUser);
+                Role userRole = roleRepository.findByName("ROLE_USER")  // user 권한 찾기
+//                        .orElseThrow(() -> new RuntimeException("Error: Role is not found.")); // 없으면 예외
+                        .orElseGet(() -> {                                   // 없으면 새롭게 생성
+                            Role newUserRole = new Role();
+                            newUserRole.setName("ROLE_USER");
+                            return roleRepository.save(newUserRole);
+                        });
+
+                UserRole userRoleEntity = new UserRole();   // 새로운 UserRole 엔티티 생성
+                userRoleEntity.setRole(userRole);           // Role 설정
+                userRoleEntity.setSocialUser(newSocialUser);
+
+                socialUserRepository.save(newSocialUser);
+
+                userRoleEntity.setSocialUser(newSocialUser);
+
+                userRoleRepository.save(userRoleEntity);
+
+                return newSocialUser;
             });
 
             System.out.println("Logged in with user: " + socialUser.getUsername());
