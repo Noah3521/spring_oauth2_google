@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Home Page</title>
+</head>
+<body>
+
+<h2 th:if="${#authentication}">
+  Welcome, <span th:text="${#authentication.name}"></span>!
+</h2>
+
+<p>You are logged in with Google.</p>
+
+<a href="/logout">Logout</a>
+
+</body>
+</html>
