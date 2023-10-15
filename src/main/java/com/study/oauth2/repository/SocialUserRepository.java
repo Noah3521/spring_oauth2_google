@@ -8,7 +8,6 @@ import java.util.Optional;
 public interface SocialUserRepository extends JpaRepository<SocialUser, Long> {
     SocialUser findByEmail(String username);
 
-    // 변경: provider와 providerId로 사용자 조회하기
     Optional<SocialUser> findByProviderAndProviderId(String provider, String providerId);
 
 }

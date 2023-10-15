@@ -6,7 +6,7 @@ import com.study.oauth2.entity.UserRole;
 import com.study.oauth2.repository.RoleRepository;
 import com.study.oauth2.repository.SocialUserRepository;
 import com.study.oauth2.repository.UserRoleRepository;
-import com.study.oauth2.service.SocialUserService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -15,20 +15,21 @@ import org.springframework.stereotype.Component;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Map;
 
 @Component
+@Slf4j
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
-    private final SocialUserService userService;
     private final SocialUserRepository socialUserRepository;
 
     private final RoleRepository roleRepository;
 
     private final UserRoleRepository userRoleRepository;
 
-    public OAuth2LoginSuccessHandler(SocialUserService userService, SocialUserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository){
-        this.userService = userService;
+    public OAuth2LoginSuccessHandler(SocialUserRepository userRepository, RoleRepository roleRepository, UserRoleRepository userRoleRepository){
         this.socialUserRepository = userRepository;
         this.roleRepository = roleRepository;
         this.userRoleRepository = userRoleRepository;
@@ -37,20 +38,43 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
-                                        Authentication authentication) throws IOException, ServletException {
+                                        Authentication authentication) throws IOException {
         if (authentication.getPrincipal() instanceof OAuth2User) {
-            OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-            String provider = "google"; // 현재는 Google만 고려. 추후 다른 제공자 추가 필요.
-            String providerId = oauth2User.getAttribute("sub"); // Google ID 가져오기
 
-            // 반환되는 데이터 출력
-//            Map<String, Object> attributes = oauth2User.getAttributes();
-//            for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-//                System.out.println(entry.getKey() + ": " + entry.getValue());
-//            }
+            OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+
+            String provider;
+
+            HttpSession session = request.getSession(false);
+            if (session != null) {
+                provider = (String) session.getAttribute("provider");
+                session.removeAttribute("provider");
+            } else {
+                throw new IllegalStateException("provider를 가져올 수 없습니다.");
+            }
+
+            String providerId;
+            if(provider.equals("google")){
+                providerId = oauth2User.getAttribute("sub"); // Google ID 가져오기
+            } else if (provider.equals("naver")){
+                providerId = oauth2User.getAttribute("id");  // Naver Id
+            }
+            else {
+                throw new IllegalStateException("알 수 없는 서비스입니다.");
+            }
+            log.info("서비스: "+provider);
+
+
+//             반환되는 데이터 출력
+            Map<String, Object> attributes = oauth2User.getAttributes();
+            for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+                System.out.println(entry.getKey() + ": " + entry.getValue());
+            }
 
             SocialUser socialUser = socialUserRepository.findByProviderAndProviderId(provider, providerId).orElseGet(() -> {
+
                 SocialUser newSocialUser = new SocialUser();
+
                 newSocialUser.setUsername(provider+"_"+providerId); // ex) google_12345
                 newSocialUser.setProvider(provider); // ex) google
                 newSocialUser.setProviderId(providerId); // 고유 번호
@@ -77,8 +101,9 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
                 return newSocialUser;
             });
-
+            response.sendRedirect("/user");
             System.out.println("Logged in with user: " + socialUser.getUsername());
         }
     }
+
 }
