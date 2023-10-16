@@ -26,8 +26,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .authenticated()
                 .and()
                 .oauth2Login()
-                .successHandler(oAuth2LoginSuccessHandler) // 성공 핸들러 등록;
-                .userInfoEndpoint()
-                .userService(customOAuth2UserService);
+                    .successHandler(oAuth2LoginSuccessHandler) // 성공 핸들러 등록;
+                    .userInfoEndpoint()
+                    .userService(customOAuth2UserService)
+                .and()
+                .loginPage("/login")
+                .and()
+                .logout()
+                .logoutUrl("/logout")
+                .invalidateHttpSession(true)
+                .clearAuthentication(true)
+                .logoutSuccessUrl("/");
     }
 }

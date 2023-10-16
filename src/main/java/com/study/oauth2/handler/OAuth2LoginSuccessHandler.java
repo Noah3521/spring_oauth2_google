@@ -101,8 +101,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
                 return newSocialUser;
             });
-            response.sendRedirect("/user");
-            System.out.println("Logged in with user: " + socialUser.getUsername());
+            response.sendRedirect("/");
+            log.info("Logged in with user: " + socialUser.getName());
         }
     }
 

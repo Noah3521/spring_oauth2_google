@@ -5,13 +5,15 @@
 </head>
 <body>
 
-<h2 th:if="${#authentication}">
-  Welcome, <span th:text="${#authentication.name}"></span>!
-</h2>
+<h1 th:if="${userDetails}" th:text="'안녕하세요, ' + ${userDetails['name']} + '님!'">Welcome</h1>
 
-<p>You are logged in with Google.</p>
+<a th:unless="${userDetails}" th:href="@{/login}">Login</a>
 
-<a href="/logout">Logout</a>
+<a th:if="${userDetails}" th:href="@{/socialuser/user}">정보 보기</a>
+
+<form th:if="${userDetails}" th:action="@{/logout}" method="post">
+  <input type="submit" value="Logout"/>
+</form>
 
 </body>
 </html>
